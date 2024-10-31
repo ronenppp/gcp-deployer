@@ -95,13 +95,32 @@ class CloudFunctionsGen1Deployer(Deployer):
         completed_process = self._deploy_function(deployment_config)
         print(f'Deployment completed with status code: {completed_process.returncode}')
 
+    def __repr__(self):
+        return 'Cloud Functions Gen1'
+
 
 class CloudRunFunctionsDeployer(Deployer):
     def validate_input(self) -> bool:
-        pass
+        parser = argparse.ArgumentParser()
+        parser.add_argument('function_name', type=str, help='function name')
+        parser.add_argument('project', type=str, help='target project name')
+        parser.add_argument('deploy_method', type=str, help=f'specify deployment type {DEPLOY_METHOD_OPTIONS}')
+        parser.add_argument('-t', '--topic', type=str, help='specify pubsub topic')
+        parser.add_argument('-b', '--bucket', type=str, help='specify bucket')
+        parser.add_argument('-s', '--secret', type=str, help='specify secrets from secret manager')
+        parser.add_argument('-o', '--timeout', type=str, help='specify max timeout')
+        parser.add_argument('-m', '--memory', type=str, help='specify memory size')
+        parser.add_argument('-c', '--cpu', type=str, help='specify number of cpu')
+        parser.add_argument('-i', '--instances', type=str, help='specify number of parallel instance runs')
+        parser.add_argument('-u', '--unittest', action="store_true", help='run unit testing with pytest')
+        self._args = parser.parse_args()
+        return True
 
     def deploy(self) -> None:
         pass
+
+    def __repr__(self):
+        return 'Cloud Run Functions'
 
 
 def get_deployer(args: list) -> Union[Deployer, None]:

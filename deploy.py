@@ -6,6 +6,7 @@ from deployers import get_deployer
 def run():
     deployer = get_deployer(sys.argv)
     if deployer and deployer.validate_input():
+        print(f'The following deployment method was selected: {deployer}')
         deployer.deploy()
 
 
