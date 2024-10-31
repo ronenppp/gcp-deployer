@@ -1,5 +1,4 @@
 import argparse
-import subprocess
 
 from abc import ABCMeta, abstractmethod
 from typing import Union
