@@ -1,9 +1,9 @@
 import argparse
+import subprocess
 
 from abc import ABCMeta, abstractmethod
 from typing import Union
-from consts import *
-from utils import *
+from utils.utils import *
 
 
 class Deployer(metaclass=ABCMeta):
@@ -11,11 +11,11 @@ class Deployer(metaclass=ABCMeta):
         self._args = None
 
     @abstractmethod
-    def validate_input(self):
+    def validate_input(self) -> bool:
         """Validate the input commands from the user"""
 
     @abstractmethod
-    def deploy(self):
+    def deploy(self) -> None:
         """Issues deployment commands to GCP cloud"""
 
 
@@ -60,7 +60,7 @@ class CloudFunctionsGen1Deployer(Deployer):
         else:
             return ['--trigger-http']
 
-    def _deploy_function(self, deploy_conf) -> None:
+    def _deploy_function(self, deploy_conf) -> subprocess.CompletedProcess:
         commands = ['gcloud', 'functions', 'deploy', deploy_conf['function_name'],
                     '--region', deploy_conf['region'],
                     '--runtime', deploy_conf['runtime'],
@@ -80,9 +80,9 @@ class CloudFunctionsGen1Deployer(Deployer):
             commands += ['--security-level', deploy_conf['security-level']]
 
         print(f'About to deploy with the following configuration: {commands}')
-        subprocess.run(commands, shell=True)
+        return subprocess.run(commands, shell=True)
 
-    def deploy(self):
+    def deploy(self) -> None:
         repo_root = get_local_repo_path()
 
         # Run tests
@@ -93,14 +93,15 @@ class CloudFunctionsGen1Deployer(Deployer):
         deployment_config = self._prepare_deployment_config(deployment_folder)
 
         # Deploy to the cloud
-        self._deploy_function(deployment_config)
+        completed_process = self._deploy_function(deployment_config)
+        print(f'Deployment completed with status code: {completed_process.returncode}')
 
 
 class CloudRunFunctionsDeployer(Deployer):
-    def validate_input(self):
+    def validate_input(self) -> bool:
         pass
 
-    def deploy(self):
+    def deploy(self) -> None:
         pass
 
 
