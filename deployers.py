@@ -116,8 +116,60 @@ class CloudRunFunctionsDeployer(Deployer):
         self._args = parser.parse_args()
         return True
 
-    def deploy(self) -> None:
+    def _get_trigger_commands(self) -> list:
         pass
+
+    def _prepare_deployment_config(self, deployment_folder: str) -> dict:
+        deploy_conf = {
+            'function_name': self._args.function_name,
+            'region': DEPLOY_DEFAULT_REGION,
+            'base-image': DEPLOY_DEFAULT_RUNTIME,
+            'source': deployment_folder,
+            'function': DEPLOY_DEFAULT_ENTRYPOINT,
+            'service-account': DEPLOY_DEFAULT_SERVICE_ACCOUNT.format(self._args.project),
+            'timeout': self._args.timeout or DEPLOY_DEFAULT_TIMEOUT,
+            'memory': self._args.memory or DEPLOY_DEFAULT_MEMORY_CR,
+            'cpu': self._args.memory or DEPLOY_DEFAULT_CPU,
+            'max-instances': self._args.instances or DEPLOY_DEFAULT_MAX_INSTANCES,
+            'project': self._args.project,
+        }
+        deploy_conf.update({'set-secrets': self._args.secret} if self._args.secret else {})
+        deploy_conf.update({'security-level': 'secure-always'} if not self._args.topic and not self._args.bucket else {})
+        return deploy_conf
+
+    def _deploy_function(self, deploy_conf) -> subprocess.CompletedProcess:
+        commands = ['gcloud', 'beta', 'run', 'deploy', deploy_conf['function_name'],
+                    '--region', deploy_conf['region'],
+                    '--base-image', deploy_conf['base-image'],
+                    '--source', deploy_conf['source'],
+                    '--function', deploy_conf['function'],
+                    '--service-account', deploy_conf['service-account'],
+                    '--timeout', deploy_conf['timeout'],
+                    '--memory', deploy_conf['memory'],
+                    '--cpu', deploy_conf['cpu'],
+                    '--max-instances', deploy_conf['max-instances'],
+                    '--no-allow-unauthenticated',
+                    '--project', deploy_conf['project']
+                    ]
+        if 'set-secrets' in deploy_conf:
+            commands += ['--set-secrets', deploy_conf['set-secrets']]
+
+        print(f'About to deploy with the following configuration: {commands}')
+        return subprocess.run(commands, shell=True)
+
+    def deploy(self) -> None:
+        repo_root = get_local_repo_path()
+
+        # Run tests
+        if self._args.unittest and not run_tests(repo_root):
+            raise RuntimeError('Some or all tests have failed. Aborting deployment')
+
+        deployment_folder = prepare_deployment_folder(self._args.function_name)
+        deployment_config = self._prepare_deployment_config(deployment_folder)
+
+        # Deploy to the cloud
+        completed_process = self._deploy_function(deployment_config)
+        print(f'Deployment completed with status code: {completed_process.returncode}')
 
     def __repr__(self):
         return 'Cloud Run Functions'
