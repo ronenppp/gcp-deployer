@@ -96,7 +96,7 @@ class CloudFunctionsGen1Deployer(Deployer):
         print(f'Deployment completed with status code: {completed_process.returncode}')
 
     def __repr__(self):
-        return 'Cloud Functions Gen1'
+        return 'Cloud Functions Gen1 deployer'
 
 
 class CloudRunFunctionsDeployer(Deployer):
@@ -116,7 +116,7 @@ class CloudRunFunctionsDeployer(Deployer):
         self._args = parser.parse_args()
         return True
 
-    def _get_trigger_commands(self) -> list:
+    def _add_triggers(self) -> list:
         pass
 
     def _prepare_deployment_config(self, deployment_folder: str) -> dict:
@@ -137,7 +137,8 @@ class CloudRunFunctionsDeployer(Deployer):
         deploy_conf.update({'security-level': 'secure-always'} if not self._args.topic and not self._args.bucket else {})
         return deploy_conf
 
-    def _deploy_function(self, deploy_conf) -> subprocess.CompletedProcess:
+    @staticmethod
+    def _deploy_function(deploy_conf) -> subprocess.CompletedProcess:
         commands = ['gcloud', 'beta', 'run', 'deploy', deploy_conf['function_name'],
                     '--region', deploy_conf['region'],
                     '--base-image', deploy_conf['base-image'],
@@ -172,7 +173,7 @@ class CloudRunFunctionsDeployer(Deployer):
         print(f'Deployment completed with status code: {completed_process.returncode}')
 
     def __repr__(self):
-        return 'Cloud Run Functions'
+        return 'Cloud Run Functions deployer'
 
 
 def get_deployer(args: list) -> Union[Deployer, None]:
