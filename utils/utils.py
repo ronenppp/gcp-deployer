@@ -5,7 +5,15 @@ import string
 import subprocess
 import tempfile
 
-from consts import *
+from consts import DEPLOY_DEFAULT_LIBRARIES, DEV_FOLDER_NAME, REPO_FOLDER_NAME, COPY_BLACKLIST_FILES
+
+
+def get_project_number(project_id: str) -> str:
+    from google.cloud import resourcemanager_v3
+    client = resourcemanager_v3.ProjectsClient()
+    project_name = f"projects/{project_id}"
+    project = client.get_project(name=project_name)
+    return project.name.split("/")[1]  # Extract the project number
 
 
 def prepare_deployment_folder(function_name: str) -> str:

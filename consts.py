@@ -10,6 +10,7 @@ DEPLOY_DEFAULT_MEMORY_CR = '512Mi'
 DEPLOY_DEFAULT_CPU = '1'
 DEPLOY_DEFAULT_MAX_INSTANCES = '1'
 DEPLOY_DEFAULT_SERVICE_ACCOUNT = 'cloud-functions@{}.iam.gserviceaccount.com'
+DEPLOY_DEFAULT_COMPUTE_ACCOUNT = '{}-compute@developer.gserviceaccount.com'
 DEPLOY_METHOD_OPTIONS = '(CF|CRF)'
 DEPLOY_DEFAULT_LIBRARIES = ['utils']
 
@@ -17,3 +18,5 @@ COPY_BLACKLIST_FILES = ['.gcloudignore']
 TESTS_FOLDER_NAME = 'tests'
 DEV_FOLDER_NAME = 'PycharmProjects'
 REPO_FOLDER_NAME = 'gcp-deployer'
+
+TRIGGER_DEFAULT_PUBSUB_ACK = 600

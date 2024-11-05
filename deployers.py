@@ -1,8 +1,13 @@
 import argparse
+import subprocess
 
 from abc import ABCMeta, abstractmethod
 from typing import Union
-from utils.utils import *
+from consts import DEPLOY_METHOD_OPTIONS, DEPLOY_DEFAULT_REGION, DEPLOY_DEFAULT_RUNTIME, DEPLOY_DEFAULT_ENTRYPOINT, \
+    DEPLOY_DEFAULT_SERVICE_ACCOUNT, DEPLOY_DEFAULT_TIMEOUT, DEPLOY_DEFAULT_MEMORY, DEPLOY_DEFAULT_MAX_INSTANCES, \
+    DEPLOY_DEFAULT_COMPUTE_ACCOUNT, DEPLOY_DEFAULT_MEMORY_CR, DEPLOY_DEFAULT_CPU, ARGS_CLOUD_FUNCTIONS, \
+    ARGS_CLOUD_RUN_FUNCTIONS, TRIGGER_DEFAULT_PUBSUB_ACK
+from utils.utils import get_local_repo_path, run_tests, prepare_deployment_folder, get_project_number
 
 
 class Deployer(metaclass=ABCMeta):
@@ -116,8 +121,37 @@ class CloudRunFunctionsDeployer(Deployer):
         self._args = parser.parse_args()
         return True
 
-    def _add_triggers(self) -> list:
-        pass
+    def _add_storage_trigger(self) -> subprocess.CompletedProcess:
+        project_number = get_project_number(self._args.project)
+        commands = ['gcloud', 'eventarc', 'triggers', 'create', self._args.function_name,
+                    '--location', DEPLOY_DEFAULT_REGION,
+                    '--destination-run-service', self._args.function_name,
+                    '--destination-run-region', DEPLOY_DEFAULT_REGION,
+                    '--event-filters', 'type=google.cloud.storage.object.v1.finalized',
+                    '--event-filters', f'bucket={self._args.bucket}',
+                    '--service-account', DEPLOY_DEFAULT_COMPUTE_ACCOUNT.format(project_number),
+                    ]
+
+        print(f'About to run with the following configuration: {commands}')
+        return subprocess.run(commands, shell=True)
+
+    def _add_pubsub_trigger(self) -> subprocess.CompletedProcess:
+        project_number = get_project_number(self._args.project)
+        commands = ['gcloud', 'pubsub', 'subscriptions', 'create', self._args.function_name,
+                    '--topic', self._args.topic,
+                    '--ack-deadline', TRIGGER_DEFAULT_PUBSUB_ACK,
+                    '--push-endpoint', 'https://{}-{}.us-east1.run.app'.format(self._args.function_name, project_number),
+                    '--service-account', DEPLOY_DEFAULT_COMPUTE_ACCOUNT.format(project_number),
+                    ]
+
+        print(f'About to run with the following configuration: {commands}')
+        return subprocess.run(commands, shell=True)
+
+    def _add_triggers(self) -> None:
+        if self._args.bucket:
+            self._add_storage_trigger()
+        if self._args.topic:
+            self._add_pubsub_trigger()
 
     def _prepare_deployment_config(self, deployment_folder: str) -> dict:
         deploy_conf = {
@@ -170,6 +204,9 @@ class CloudRunFunctionsDeployer(Deployer):
 
         # Deploy to the cloud
         completed_process = self._deploy_function(deployment_config)
+        if completed_process.returncode == 0 and any([self._args.topic, self._args.bucket]):
+            self._add_triggers()
+
         print(f'Deployment completed with status code: {completed_process.returncode}')
 
     def __repr__(self):
