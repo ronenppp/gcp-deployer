@@ -140,7 +140,8 @@ class CloudRunFunctionsDeployer(Deployer):
         commands = ['gcloud', 'pubsub', 'subscriptions', 'create', self._args.function_name,
                     '--topic', self._args.topic,
                     '--ack-deadline', TRIGGER_DEFAULT_PUBSUB_ACK,
-                    '--push-endpoint', 'https://{}-{}.us-east1.run.app'.format(self._args.function_name, project_number),
+                    '--push-endpoint', 'https://{}-{}.us-east1.run.app'.format(self._args.function_name,
+                                                                               project_number),
                     '--service-account', DEPLOY_DEFAULT_COMPUTE_ACCOUNT.format(project_number),
                     ]
 
